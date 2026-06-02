@@ -1,0 +1,23 @@
+---
+- name: Install Corosync and Pacemaker
+  apt:
+    name:
+      - corosync
+      - pacemaker
+      - pcs
+      - fence-agents
+      - nginx
+      - haproxy
+    state: present
+    update_cache: yes
+
+- name: Enable and start pcsd service
+  service:
+    name: pcsd
+    state: started
+    enabled: yes
+
+- name: Set hacluster user password
+  user:
+    name: hacluster
+    password: "{{ 'Cluster2026!' | password_hash('sha512') }}"
