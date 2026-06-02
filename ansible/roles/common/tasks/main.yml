@@ -1,0 +1,31 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install common packages
+  apt:
+    name:
+      - curl
+      - wget
+      - vim
+      - net-tools
+      - traceroute
+      - tcpdump
+      - htop
+    state: present
+
+- name: Set hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Update /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ item }}"
+    state: present
+  loop:
+    - "10.10.10.19  node01"
+    - "10.10.10.173 node02"
+    - "10.10.10.115 node03"

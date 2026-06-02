@@ -1,0 +1,6 @@
+---
+- name: Apply common configuration to all nodes
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - common
