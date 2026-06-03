@@ -1,0 +1,53 @@
+---
+- name: Install DRBD packages
+  apt:
+    name:
+      - drbd-utils
+      - linux-modules-extra-{{ ansible_kernel }}
+    state: present
+    update_cache: yes
+  when: inventory_hostname in ['node01', 'node02']
+
+- name: Load DRBD kernel module
+  modprobe:
+    name: drbd
+    state: present
+  when: inventory_hostname in ['node01', 'node02']
+
+- name: Create DRBD configuration
+  copy:
+    dest: /etc/drbd.d/cluster.res
+    content: |
+      resource cluster {
+        protocol C;
+        on node01 {
+          device /dev/drbd0;
+          disk /dev/vdb;
+          address 10.10.10.19:7789;
+          meta-disk internal;
+        }
+        on node02 {
+          device /dev/drbd0;
+          disk /dev/vdb;
+          address 10.10.10.173:7789;
+          meta-disk internal;
+        }
+      }
+  when: inventory_hostname in ['node01', 'node02']
+
+- name: Initialize DRBD metadata on node01
+  command: drbdadm create-md cluster --force
+  when: inventory_hostname == 'node01'
+  ignore_errors: yes
+
+- name: Initialize DRBD metadata on node02
+  command: drbdadm create-md cluster --force
+  when: inventory_hostname == 'node02'
+  ignore_errors: yes
+
+- name: Start DRBD service
+  service:
+    name: drbd
+    state: started
+    enabled: yes
+  when: inventory_hostname in ['node01', 'node02']
