@@ -1,0 +1,158 @@
+---
+- name: Download Promtail
+  get_url:
+    url: https://github.com/grafana/loki/releases/download/v2.9.0/promtail-linux-amd64.zip
+    dest: /tmp/promtail.zip
+
+- name: Install unzip
+  apt:
+    name: unzip
+    state: present
+
+- name: Extract Promtail
+  unarchive:
+    src: /tmp/promtail.zip
+    dest: /usr/local/bin/
+    remote_src: yes
+
+- name: Rename Promtail binary
+  command: mv /usr/local/bin/promtail-linux-amd64 /usr/local/bin/promtail
+  args:
+    creates: /usr/local/bin/promtail
+
+- name: Set Promtail permissions
+  file:
+    path: /usr/local/bin/promtail
+    mode: '0755'
+
+- name: Create Promtail config directory
+  file:
+    path: /etc/promtail
+    state: directory
+
+- name: Create Promtail config
+  copy:
+    dest: /etc/promtail/config.yml
+    content: |
+      server:
+        http_listen_port: 9080
+        grpc_listen_port: 0
+      positions:
+        filename: /tmp/positions.yaml
+      clients:
+        - url: http://10.10.10.115:3100/loki/api/v1/push
+      scrape_configs:
+        - job_name: system
+          static_configs:
+            - targets:
+                - localhost
+              labels:
+                job: varlogs
+                host: "{{ inventory_hostname }}"
+                __path__: /var/log/*log
+
+- name: Create Promtail systemd service
+  copy:
+    dest: /etc/systemd/system/promtail.service
+    content: |
+      [Unit]
+      Description=Promtail
+      After=network.target
+      [Service]
+      ExecStart=/usr/local/bin/promtail -config.file=/etc/promtail/config.yml
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Start and enable Promtail
+  systemd:
+    name: promtail
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Download Loki
+  get_url:
+    url: https://github.com/grafana/loki/releases/download/v2.9.0/loki-linux-amd64.zip
+    dest: /tmp/loki.zip
+  when: inventory_hostname == 'node03'
+
+- name: Extract Loki
+  unarchive:
+    src: /tmp/loki.zip
+    dest: /usr/local/bin/
+    remote_src: yes
+  when: inventory_hostname == 'node03'
+
+- name: Rename Loki binary
+  command: mv /usr/local/bin/loki-linux-amd64 /usr/local/bin/loki
+  args:
+    creates: /usr/local/bin/loki
+  when: inventory_hostname == 'node03'
+
+- name: Set Loki permissions
+  file:
+    path: /usr/local/bin/loki
+    mode: '0755'
+  when: inventory_hostname == 'node03'
+
+- name: Create Loki config directory
+  file:
+    path: /etc/loki
+    state: directory
+  when: inventory_hostname == 'node03'
+
+- name: Create Loki config
+  copy:
+    dest: /etc/loki/config.yml
+    content: |
+      auth_enabled: false
+      server:
+        http_listen_port: 3100
+      ingester:
+        lifecycler:
+          ring:
+            kvstore:
+              store: inmemory
+            replication_factor: 1
+      schema_config:
+        configs:
+          - from: 2020-10-24
+            store: boltdb-shipper
+            object_store: filesystem
+            schema: v11
+            index:
+              prefix: index_
+              period: 24h
+      storage_config:
+        boltdb_shipper:
+          active_index_directory: /tmp/loki/index
+          cache_location: /tmp/loki/cache
+        filesystem:
+          directory: /tmp/loki/chunks
+      limits_config:
+        reject_old_samples: true
+        reject_old_samples_max_age: 168h
+  when: inventory_hostname == 'node03'
+
+- name: Create Loki systemd service
+  copy:
+    dest: /etc/systemd/system/loki.service
+    content: |
+      [Unit]
+      Description=Loki
+      After=network.target
+      [Service]
+      ExecStart=/usr/local/bin/loki -config.file=/etc/loki/config.yml
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+  when: inventory_hostname == 'node03'
+
+- name: Start and enable Loki
+  systemd:
+    name: loki
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  when: inventory_hostname == 'node03'

@@ -6,3 +6,4 @@
     - common
     - pacemaker
     - monitoring
+    - logging
