@@ -7,3 +7,4 @@
     - pacemaker
     - monitoring
     - logging
+    - alertmanager

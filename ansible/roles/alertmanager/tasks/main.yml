@@ -1,0 +1,117 @@
+---
+- name: Download Alertmanager
+  get_url:
+    url: https://github.com/prometheus/alertmanager/releases/download/v0.26.0/alertmanager-0.26.0.linux-amd64.tar.gz
+    dest: /tmp/alertmanager.tar.gz
+  when: inventory_hostname == 'node03'
+
+- name: Extract Alertmanager
+  unarchive:
+    src: /tmp/alertmanager.tar.gz
+    dest: /tmp/
+    remote_src: yes
+  when: inventory_hostname == 'node03'
+
+- name: Copy Alertmanager binary
+  copy:
+    src: /tmp/alertmanager-0.26.0.linux-amd64/alertmanager
+    dest: /usr/local/bin/alertmanager
+    mode: '0755'
+    remote_src: yes
+  when: inventory_hostname == 'node03'
+
+- name: Create Alertmanager config directory
+  file:
+    path: /etc/alertmanager
+    state: directory
+  when: inventory_hostname == 'node03'
+
+- name: Create Alertmanager config
+  copy:
+    dest: /etc/alertmanager/alertmanager.yml
+    content: |
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ['alertname']
+        group_wait: 10s
+        group_interval: 10s
+        repeat_interval: 1h
+        receiver: 'file-log'
+      receivers:
+        - name: 'file-log'
+          webhook_configs:
+            - url: 'http://localhost:5001/'
+              send_resolved: true
+  when: inventory_hostname == 'node03'
+
+- name: Create alert rules directory
+  file:
+    path: /etc/prometheus/rules
+    state: directory
+  when: inventory_hostname == 'node03'
+
+- name: Create alert rules file
+  copy:
+    dest: /etc/prometheus/rules/cluster.yml
+    content: "groups:\n  - name: cluster_alerts\n    rules:\n      - alert: NodeDown\n        expr: up == 0\n        for: 30s\n        labels:\n          severity: critical\n        annotations:\n          summary: Node is down\n          description: Node has been down for more than 30 seconds\n      - alert: HighCPUUsage\n        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode='idle'}[2m])) * 100) > 85\n        for: 2m\n        labels:\n          severity: warning\n        annotations:\n          summary: High CPU usage detected\n          description: CPU usage is above 85 percent\n      - alert: HighDiskUsage\n        expr: (node_filesystem_size_bytes - node_filesystem_free_bytes) / node_filesystem_size_bytes * 100 > 85\n        for: 5m\n        labels:\n          severity: warning\n        annotations:\n          summary: High disk usage detected\n          description: Disk usage is above 85 percent\n      - alert: HighMemoryUsage\n        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85\n        for: 2m\n        labels:\n          severity: warning\n        annotations:\n          summary: High memory usage detected\n          description: Memory usage is above 85 percent\n"
+  when: inventory_hostname == 'node03'
+
+- name: Update Prometheus config
+  copy:
+    dest: /etc/prometheus/prometheus.yml
+    content: |
+      global:
+        scrape_interval: 15s
+        evaluation_interval: 15s
+      alerting:
+        alertmanagers:
+          - static_configs:
+              - targets:
+                  - localhost:9093
+      rule_files:
+        - /etc/prometheus/rules/*.yml
+      scrape_configs:
+        - job_name: 'node_exporter'
+          static_configs:
+            - targets:
+              - '10.10.10.19:9100'
+              - '10.10.10.173:9100'
+              - '10.10.10.115:9100'
+  when: inventory_hostname == 'node03'
+
+- name: Create Alertmanager systemd service
+  copy:
+    dest: /etc/systemd/system/alertmanager.service
+    content: |
+      [Unit]
+      Description=Alertmanager
+      After=network.target
+      [Service]
+      User=prometheus
+      ExecStart=/usr/local/bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/tmp/alertmanager
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+  when: inventory_hostname == 'node03'
+
+- name: Create Alertmanager storage directory
+  file:
+    path: /tmp/alertmanager
+    state: directory
+    owner: prometheus
+  when: inventory_hostname == 'node03'
+
+- name: Start and enable Alertmanager
+  systemd:
+    name: alertmanager
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  when: inventory_hostname == 'node03'
+
+- name: Restart Prometheus to load new config
+  systemd:
+    name: prometheus
+    state: restarted
+  when: inventory_hostname == 'node03'
