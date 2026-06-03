@@ -95,11 +95,9 @@ ansible-playbook -i ansible/inventory.ini ansible/site.yml
 
 | Challenge | Solution |
 |---|---|
-| OpenStack blocking VirtualIP traffic | Added allowed address pairs on all 3 ports via Neutron API |
-| Wi-Fi blocking SSH from local PC | Used management VM as jump host inside ICOSNET |
-| Loki failing to start | Created missing compactor directory and updated config |
-| Ubuntu cloud image no password | Used cloud-init user data script to inject credentials |
-
+| OpenStack Neutron blocking VirtualIP traffic at network level | Identified port security as root cause and configured allowed address pairs on all 3 VM ports via OpenStack Neutron API - traffic was silently dropped without any error from Pacemaker |
+| DRBD split-brain prevention in virtualized environment | Configured Protocol C synchronous replication ensuring zero data loss - managed primary/secondary role transitions manually to prevent dual-primary corruption |
+| Prometheus alert rules conflicting with Ansible Jinja2 templating engine | Prometheus uses double curly braces for label variables which Ansible interprets as its own template syntax - resolved by escaping the annotation variables |
 ## Author
 
 **Zekkour Abderraouf** | Infrastructure & Cloud Engineer
