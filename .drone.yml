@@ -1,0 +1,19 @@
+kind: pipeline
+type: docker
+name: deploy
+
+steps:
+  - name: ansible-deploy
+    image: cytopia/ansible:latest
+    environment:
+      ANSIBLE_HOST_KEY_CHECKING: "false"
+    commands:
+      - ansible --version
+      - echo "Pipeline triggered successfully"
+      - echo "In production this would run: ansible-playbook -i ansible/inventory.ini ansible/site.yml"
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
