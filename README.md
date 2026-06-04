@@ -97,6 +97,8 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 ![Drone CI](11-drone-ci-pipeline-success.png)
 
 ## Project Structure
+
+```
 linux-ha-cluster/
 ├── ansible/
 │   ├── inventory.ini
@@ -114,7 +116,7 @@ linux-ha-cluster/
 │   └── troubleshooting.md
 ├── screenshots/
 └── README.md
-
+```
 ## How to Deploy
 
 ### Prerequisites
