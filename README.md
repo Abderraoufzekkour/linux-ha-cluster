@@ -178,3 +178,4 @@ ansible-playbook -i ansible/inventory.ini ansible/site.yml
 
 - GitHub: [Abderraoufzekkour](https://github.com/Abderraoufzekkour)
 - Email: abderraoufzekkour05@gmail.com
+- LinkedIn: [zekkour-abderraouf](https://www.linkedin.com/in/zekkour-abderraouf)
