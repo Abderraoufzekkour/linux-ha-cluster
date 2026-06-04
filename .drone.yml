@@ -10,7 +10,6 @@ steps:
     commands:
       - ansible --version
       - echo "Pipeline triggered successfully"
-      - echo "In production this would run: ansible-playbook -i ansible/inventory.ini ansible/site.yml"
 
 trigger:
   branch:
