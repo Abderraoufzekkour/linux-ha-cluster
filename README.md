@@ -7,10 +7,11 @@
 ![Grafana](https://img.shields.io/badge/Grafana-13.0-yellow.svg)
 ![DRBD](https://img.shields.io/badge/DRBD-9.0-blue.svg)
 ![Drone CI](https://img.shields.io/badge/Drone_CI-2.0-black.svg)
+![Security](https://img.shields.io/badge/Lynis-71%2F100-brightgreen.svg)
 
 ## Overview
 
-This project implements a **production-grade 3-node High Availability cluster** deployed on OpenStack. The infrastructure provides automatic failover, zero-manual-intervention recovery, real-time monitoring, centralized log aggregation, block-level data replication, and a full GitOps CI/CD pipeline.
+This project implements a **production-grade 3-node High Availability cluster** deployed on OpenStack. The infrastructure provides automatic failover, zero-manual-intervention recovery, real-time monitoring, centralized log aggregation, block-level data replication, a full GitOps CI/CD pipeline, and CIS benchmark security hardening.
 
 The entire stack is provisioned and configured using **Ansible**, following Infrastructure-as-Code best practices. Every component is version-controlled, documented, and reproducible from a single command.
 
@@ -32,6 +33,7 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 | 5 | Alertmanager - 4 alert rules | NodeDown alert tested and verified |
 | 6 | DRBD block replication | Zero data loss verified |
 | 7 | Gitea + Drone CI pipeline | Automated build on every push |
+| 8 | Security hardening - CIS benchmark | Lynis score 71/100 |
 
 ## Technology Stack
 
@@ -42,13 +44,14 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 | Web Server | nginx | HTTP service managed by Pacemaker |
 | Load Balancer | HAProxy | Traffic distribution |
 | Data Replication | DRBD Protocol C | Synchronous block-level replication - zero RPO |
-| Automation | Ansible | Full infrastructure provisioning - 7 roles |
+| Automation | Ansible | Full infrastructure provisioning - 8 roles |
 | Monitoring | Prometheus + Node Exporter | Metrics collection from all nodes every 15s |
 | Alerting | Alertmanager | 4 production alert rules |
 | Dashboards | Grafana | Real-time visualization and log querying |
 | Log Aggregation | Loki + Promtail | Centralized logging from all nodes |
 | Git Server | Gitea | Self-hosted Git repository management |
 | CI/CD Pipeline | Drone CI | Automated pipeline on every push |
+| Security | Fail2ban + CIS Benchmark + Lynis | Intrusion prevention + compliance hardening |
 | Infrastructure | OpenStack | Private cloud environment |
 
 ## Failover Results
@@ -60,6 +63,18 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 | Failover method | Automatic (no human intervention) |
 | Detection time | ~3 seconds (Corosync heartbeat) |
 | Resource migration | VirtualIP + nginx + HAProxy move together |
+
+## Security Hardening Results
+
+| Control | Implementation |
+|---|---|
+| Intrusion prevention | Fail2ban - bans IPs after 3 failed SSH attempts |
+| SSH hardening | Root login disabled, password auth disabled, MaxAuthTries 3 |
+| CIS benchmark | 15+ Level 1 controls implemented via Ansible |
+| Network hardening | IP forwarding disabled, SYN cookies enabled, martian logging |
+| Audit logging | auditd tracking changes to critical system files |
+| Password policy | Min 14 chars, 90 day expiry, complexity requirements |
+| Lynis audit score | **71/100** (improved from baseline 65) |
 
 ## Screenshots
 
@@ -96,9 +111,16 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 ### Drone CI Pipeline Success
 ![Drone CI](11-drone-ci-pipeline-success.png)
 
-## Project Structure
+### Fail2ban SSH Protection
+![Fail2ban](12-fail2ban-sshd-jail-active.png)
 
-```
+### Lynis Security Score - Baseline 65
+![Lynis baseline](13-lynis-hardening-index-65.png)
+
+### Lynis Security Score - Improved 71
+![Lynis improved](14-lynis-hardening-index-68-improved.png)
+
+## Project Structure
 linux-ha-cluster/
 ├── ansible/
 │   ├── inventory.ini
@@ -110,13 +132,14 @@ linux-ha-cluster/
 │       ├── logging/
 │       ├── alertmanager/
 │       ├── drbd/
-│       └── gitea/
+│       ├── gitea/
+│       └── security/
 ├── docs/
 │   ├── architecture.md
 │   └── troubleshooting.md
 ├── screenshots/
 └── README.md
-```
+
 ## How to Deploy
 
 ### Prerequisites
@@ -151,3 +174,4 @@ ansible-playbook -i ansible/inventory.ini ansible/site.yml
 **Zekkour Abderraouf** | Infrastructure & Cloud Engineer
 
 - GitHub: [Abderraoufzekkour](https://github.com/Abderraoufzekkour)
+- Email: abderraoufzekkour05@gmail.com
