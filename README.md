@@ -121,6 +121,8 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 ![Lynis improved](14-lynis-hardening-index-68-improved.png)
 
 ## Project Structure
+
+```
 linux-ha-cluster/
 ├── ansible/
 │   ├── inventory.ini
@@ -139,6 +141,7 @@ linux-ha-cluster/
 │   └── troubleshooting.md
 ├── screenshots/
 └── README.md
+```
 
 ## How to Deploy
 
