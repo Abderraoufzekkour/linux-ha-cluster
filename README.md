@@ -149,4 +149,3 @@ ansible-playbook -i ansible/inventory.ini ansible/site.yml
 **Zekkour Abderraouf** | Infrastructure & Cloud Engineer
 
 - GitHub: [Abderraoufzekkour](https://github.com/Abderraoufzekkour)
-- Email: a_zekkour@inptic.edu.dz
