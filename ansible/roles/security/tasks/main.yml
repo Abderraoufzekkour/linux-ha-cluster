@@ -1,0 +1,183 @@
+---
+- name: Install Fail2ban
+  apt:
+    name: fail2ban
+    state: present
+    update_cache: yes
+
+- name: Create Fail2ban jail configuration
+  copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [DEFAULT]
+      bantime  = 3600
+      findtime = 600
+      maxretry = 3
+      backend  = systemd
+
+      [sshd]
+      enabled  = true
+      port     = ssh
+      filter   = sshd
+      maxretry = 3
+      bantime  = 3600
+
+- name: Start and enable Fail2ban
+  systemd:
+    name: fail2ban
+    state: started
+    enabled: yes
+
+- name: Set SSH MaxAuthTries to 3
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?MaxAuthTries'
+    line: 'MaxAuthTries 3'
+    state: present
+
+- name: Disable SSH root login
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PermitRootLogin'
+    line: 'PermitRootLogin no'
+    state: present
+
+- name: Disable SSH password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+
+- name: Restart SSH service
+  systemd:
+    name: ssh
+    state: restarted
+
+- name: CIS 1.1 - Disable unused filesystems
+  copy:
+    dest: /etc/modprobe.d/cis-hardening.conf
+    content: |
+      install cramfs /bin/true
+      install freevxfs /bin/true
+      install jffs2 /bin/true
+      install hfs /bin/true
+      install hfsplus /bin/true
+      install udf /bin/true
+
+- name: CIS 3.1 - Disable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '0'
+    state: present
+    reload: yes
+
+- name: CIS 3.2 - Disable send packet redirects
+  sysctl:
+    name: net.ipv4.conf.all.send_redirects
+    value: '0'
+    state: present
+    reload: yes
+
+- name: CIS 3.3 - Disable ICMP redirect acceptance
+  sysctl:
+    name: net.ipv4.conf.all.accept_redirects
+    value: '0'
+    state: present
+    reload: yes
+
+- name: CIS 3.4 - Enable TCP SYN cookies
+  sysctl:
+    name: net.ipv4.tcp_syncookies
+    value: '1'
+    state: present
+    reload: yes
+
+- name: CIS 4.1 - Set permissions on /etc/passwd
+  file:
+    path: /etc/passwd
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: CIS 4.2 - Set permissions on /etc/shadow
+  file:
+    path: /etc/shadow
+    owner: root
+    group: shadow
+    mode: '0640'
+
+- name: CIS 5.1 - Set password minimum length
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^PASS_MIN_LEN'
+    line: 'PASS_MIN_LEN 14'
+    state: present
+
+- name: CIS 5.2 - Set password maximum age
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^PASS_MAX_DAYS'
+    line: 'PASS_MAX_DAYS 90'
+    state: present
+
+- name: CIS 5.3 - Set password minimum age
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^PASS_MIN_DAYS'
+    line: 'PASS_MIN_DAYS 7'
+    state: present
+
+- name: Install Lynis security auditing tool
+  apt:
+    name: lynis
+    state: present
+    update_cache: yes
+  when: inventory_hostname == 'node03'
+
+- name: Run Lynis security audit
+  command: lynis audit system --no-colors --quiet
+  when: inventory_hostname == 'node03'
+  ignore_errors: yes
+  register: lynis_output
+
+- name: Save Lynis report
+  copy:
+    content: "{{ lynis_output.stdout }}"
+    dest: /tmp/lynis-report.txt
+  when: inventory_hostname == 'node03'
+
+- name: Install libpam-tmpdir for PAM sessions
+  apt:
+    name: libpam-tmpdir
+    state: present
+
+- name: Install debsums for package verification
+  apt:
+    name: debsums
+    state: present
+
+- name: Install apt-show-versions for patch management
+  apt:
+    name: apt-show-versions
+    state: present
+
+- name: Disable core dumps
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: '* hard core 0'
+    state: present
+
+- name: Set strict umask in login.defs
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^UMASK'
+    line: 'UMASK 027'
+    state: present
+
+- name: Configure password hashing rounds
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^#?SHA_CRYPT_MIN_ROUNDS'
+    line: 'SHA_CRYPT_MIN_ROUNDS 10000'
+    state: present

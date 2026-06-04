@@ -10,3 +10,4 @@
     - alertmanager
     - drbd
     - gitea
+    - security
