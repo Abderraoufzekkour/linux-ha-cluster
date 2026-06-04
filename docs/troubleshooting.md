@@ -249,5 +249,4 @@ Check the pipeline logs in the Drone UI. Common causes:
 
 Zekkour Abderraouf | Infrastructure & Cloud Engineer
 GitHub: Abderraoufzekkour
-Email: a_zekkour@inptic.edu.dz
-ENDDOC
+
