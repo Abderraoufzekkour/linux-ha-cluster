@@ -1,4 +1,3 @@
-cat > ~/linux-ha-cluster/docs/troubleshooting.md << 'ENDDOC'
 # Troubleshooting Guide
 ## Linux HA Cluster - Production Operations
 
