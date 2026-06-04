@@ -181,3 +181,94 @@
     regexp: '^#?SHA_CRYPT_MIN_ROUNDS'
     line: 'SHA_CRYPT_MIN_ROUNDS 10000'
     state: present
+
+- name: Install pam_pwquality for password strength
+  apt:
+    name: libpam-pwquality
+    state: present
+
+- name: Configure password quality requirements
+  lineinfile:
+    path: /etc/security/pwquality.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: '^# minlen', line: 'minlen = 14' }
+    - { regexp: '^# dcredit', line: 'dcredit = -1' }
+    - { regexp: '^# ucredit', line: 'ucredit = -1' }
+    - { regexp: '^# ocredit', line: 'ocredit = -1' }
+    - { regexp: '^# lcredit', line: 'lcredit = -1' }
+
+- name: Disable USB storage
+  copy:
+    dest: /etc/modprobe.d/usb-storage.conf
+    content: |
+      install usb-storage /bin/true
+
+- name: Install auditd system auditing
+  apt:
+    name:
+      - auditd
+      - audispd-plugins
+    state: present
+
+- name: Enable and start auditd
+  systemd:
+    name: auditd
+    state: started
+    enabled: yes
+
+- name: Configure audit rules
+  copy:
+    dest: /etc/audit/rules.d/cis-hardening.rules
+    content: |
+      -a always,exit -F arch=b64 -S adjtimex -S settimeofday -k time-change
+      -a always,exit -F arch=b64 -S sethostname -S setdomainname -k system-locale
+      -w /etc/passwd -p wa -k identity
+      -w /etc/shadow -p wa -k identity
+      -w /etc/group -p wa -k identity
+      -w /etc/sudoers -p wa -k scope
+      -w /var/log/auth.log -p wa -k logins
+      -w /var/log/syslog -p wa -k logins
+
+- name: CIS kernel hardening - additional sysctl parameters
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { name: 'net.ipv4.conf.all.rp_filter', value: '1' }
+    - { name: 'net.ipv4.conf.default.rp_filter', value: '1' }
+    - { name: 'net.ipv4.icmp_echo_ignore_broadcasts', value: '1' }
+    - { name: 'net.ipv4.icmp_ignore_bogus_error_responses', value: '1' }
+    - { name: 'net.ipv4.conf.all.log_martians', value: '1' }
+    - { name: 'kernel.randomize_va_space', value: '2' }
+    - { name: 'fs.suid_dumpable', value: '0' }
+
+
+- name: Install apt-listchanges
+  apt:
+    name: apt-listchanges
+    state: present
+
+- name: Disable unused network protocols
+  copy:
+    dest: /etc/modprobe.d/disable-protocols.conf
+    content: |
+      install dccp /bin/true
+      install sctp /bin/true
+      install rds /bin/true
+      install tipc /bin/true
+
+- name: Set password expiry for ubuntu user
+  command: chage --maxdays 90 ubuntu
+  ignore_errors: yes
+
+- name: Set inactive password lock
+  lineinfile:
+    path: /etc/login.defs
+    regexp: '^#?INACTIVE'
+    line: 'INACTIVE=30'
+    state: present
