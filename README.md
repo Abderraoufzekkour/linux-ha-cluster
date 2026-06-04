@@ -118,7 +118,7 @@ Network: test-network-02 (10.10.10.0/24) on OpenStack Neutron
 ![Lynis baseline](13-lynis-hardening-index-65.png)
 
 ### Lynis Security Score - Improved 71
-![Lynis improved](14-lynis-hardening-index-68-improved.png)
+![Lynis improved](14-lynis-hardening-index-71-improved.png)
 
 ## Project Structure
 
