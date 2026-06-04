@@ -1,0 +1,75 @@
+---
+- name: Create Gitea user
+  user:
+    name: gitea
+    shell: /bin/bash
+    system: yes
+    createhome: yes
+    home: /home/gitea
+  when: inventory_hostname == 'node03'
+
+- name: Create Gitea directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: gitea
+    group: gitea
+  loop:
+    - /etc/gitea
+    - /var/lib/gitea
+    - /var/lib/gitea/custom
+    - /var/lib/gitea/data
+    - /var/lib/gitea/log
+  when: inventory_hostname == 'node03'
+
+- name: Download Gitea binary
+  get_url:
+    url: https://github.com/go-gitea/gitea/releases/download/v1.21.0/gitea-1.21.0-linux-amd64
+    dest: /usr/local/bin/gitea
+    mode: '0755'
+  when: inventory_hostname == 'node03'
+
+- name: Create Gitea systemd service
+  copy:
+    dest: /etc/systemd/system/gitea.service
+    content: |
+      [Unit]
+      Description=Gitea
+      After=network.target
+      [Service]
+      User=gitea
+      WorkingDirectory=/var/lib/gitea
+      ExecStart=/usr/local/bin/gitea web --config /etc/gitea/app.ini
+      Restart=always
+      [Install]
+      WantedBy=multi-user.target
+  when: inventory_hostname == 'node03'
+
+- name: Create Gitea config
+  copy:
+    dest: /etc/gitea/app.ini
+    owner: gitea
+    group: gitea
+    content: |
+      [DEFAULT]
+      RUN_USER = gitea
+      [server]
+      HTTP_PORT = 3001
+      ROOT_URL = http://10.10.10.115:3001/
+      [database]
+      DB_TYPE = sqlite3
+      PATH = /var/lib/gitea/data/gitea.db
+      [security]
+      INSTALL_LOCK = true
+      SECRET_KEY = changethissecretkey123
+      [service]
+      DISABLE_REGISTRATION = false
+  when: inventory_hostname == 'node03'
+
+- name: Start and enable Gitea
+  systemd:
+    name: gitea
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  when: inventory_hostname == 'node03'
